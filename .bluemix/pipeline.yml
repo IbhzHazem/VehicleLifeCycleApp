@@ -45,7 +45,7 @@ stages:
 
       # Create a service, this is okay to run if the service already exists as long as its the same typeof service
       printf "\n --- Creating an instance of the IBM Blockchain Platform service ---\n"
-      cf create-service ${IBP_NAME} ${IBP_PLAN} ${SERVICE_INSTANCE_NAME}
+      #cf create-service ${IBP_NAME} ${IBP_PLAN} ${SERVICE_INSTANCE_NAME}
 
       # Push app (don't start yet, wait for binding)
       printf "\n --- Creating the Marbles application ---\n"
