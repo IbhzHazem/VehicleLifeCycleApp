@@ -1,0 +1,69 @@
+---
+stages:
+- name: Deploy VehicleLifeCycle Application
+  inputs:
+  - type: git
+    branch: master
+    service: ${SAMPLE_REPO}
+  triggers:
+  - type: commit
+  properties:
+  - name: SERVICE_INSTANCE_NAME
+    value: '{{sin}}'
+    type: text
+  - name: SAMPLE_REPO
+    value: '{{SAMPLE_REPO}}'
+    type: text
+  jobs:
+  - name: deploy-marbles-app
+    type: deployer
+    target:
+      region_id: ${PROD_REGION_ID}
+      organization: ${PROD_ORG_NAME}
+      space: ${PROD_SPACE_NAME}
+      application: ${CF_APP_NAME}
+    script: |
+      #!/bin/bash
+      export IBP_NAME="ibm-blockchain-5-dev"
+      export IBP_PLAN="ibm-blockchain-plan-v1-ga1-dev"
+
+      # Test Code
+      printf "\n --- Listing services for testing ---\n"
+      cf services
+      #cf services | sed -n 's/.*\(ibm-blockchain-plan-v1-prod\).*/\1/p'
+      #cf services | sed -n 's/.*\(${SERVICE_INSTANCE_NAME}\).*/\1/p'
+
+      # Detect if there is already a service we should use
+      printf "\n --- Detecting service option---\n"
+      if [ "$SERVICE_INSTANCE_NAME" != "" ]; then
+        echo "A service instance name was provided, lets use that"
+      else
+        echo "A service instance name was NOT provided, lets use the default one"
+        export SERVICE_INSTANCE_NAME="davids-d2b-created"
+      fi
+      printf "Using service instance name '${SERVICE_INSTANCE_NAME}'\n"
+
+      # Create a service, this is okay to run if the service already exists as long as its the same typeof service
+      printf "\n --- Creating an instance of the IBM Blockchain Platform service ---\n"
+      cf create-service ${IBP_NAME} ${IBP_PLAN} ${SERVICE_INSTANCE_NAME}
+
+      # Push app (don't start yet, wait for binding)
+      printf "\n --- Creating the Marbles application ---\n"
+      cf push $CF_APP --no-start
+
+      # Bind app to the blockchain service
+      printf "\n --- Binding the IBM Blockchain Platform service to Marbles ---\n"
+      cf bind-service $CF_APP ${SERVICE_INSTANCE_NAME} -c "{\"permissions\":\"read-only\"}"
+
+      # Start her up
+      printf "\n --- Starting Marbles ---\n"
+      cf start $CF_APP
+      #cf restage $CF_APP - this is not needed if we bind before starting
+
+      # Install and instantiate the chaincode
+      printf "\n --- Setting up for deployment ---\n"
+      npm install
+      printf "\n --- Deploying Chaincode ---\n"
+      node ./scripts/deploy_chaincode.js || true
+
+      printf "\n\n --- We are done here. ---\n\n"
