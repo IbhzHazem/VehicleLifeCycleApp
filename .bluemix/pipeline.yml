@@ -15,7 +15,7 @@ stages:
     value: '{{SAMPLE_REPO}}'
     type: text
   jobs:
-  - name: deploy-marbles-app
+  - name: deploy-vehicle-app
     type: deployer
     target:
       region_id: ${PROD_REGION_ID}
@@ -24,46 +24,157 @@ stages:
       application: ${CF_APP_NAME}
     script: |
       #!/bin/bash
-      export IBP_NAME="ibm-blockchain-5-dev"
-      export IBP_PLAN="ibm-blockchain-plan-v1-ga1-dev"
+            export IBP_NAME="Blockchain"
+            export IBP_PLAN="ibm-blockchain-plan-v1-ga1-dev"
+           export SERVICE_INSTANCE_NAME="Blockchain-i9"
+      export VCAP_KEY_NAME="Credentials-1"
 
-      # Test Code
-      printf "\n --- Listing services for testing ---\n"
-      cf services
-      #cf services | sed -n 's/.*\(ibm-blockchain-plan-v1-prod\).*/\1/p'
-      #cf services | sed -n 's/.*\(${SERVICE_INSTANCE_NAME}\).*/\1/p'
+       printf "\n ----- admin-prive.pem ---- \n"
+           echo -----BEGIN PRIVATE KEY-----  > admin-priv.pem
+      echo MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgktxsS/ykOJ3ssvB9 >> admin-priv.pem
+      echo /RO8cPZRhoYE4Pv7k/SN03uX8ByhRANCAAR4/Edc4XsoqlLDMTXrwxHmUx6CUIY8 >> admin-priv.pem
+      echo QIGrkqNxcz21QZZ1sYq/YdtjnYcBqo7gv1Y2ui1kdsHr4Ia26bTf6A7l >> admin-priv.pem
+      echo -----END PRIVATE KEY----- >> admin-priv.pem
+           cat admin-priv.pem
 
-      # Detect if there is already a service we should use
-      printf "\n --- Detecting service option---\n"
-      if [ "$SERVICE_INSTANCE_NAME" != "" ]; then
-        echo "A service instance name was provided, lets use that"
-      else
-        echo "A service instance name was NOT provided, lets use the default one"
-        export SERVICE_INSTANCE_NAME="davids-d2b-created"
-      fi
-      printf "Using service instance name '${SERVICE_INSTANCE_NAME}'\n"
+             printf "\n ----- admin-pub.pem ---- \n"
+      echo -----BEGIN CERTIFICATE----- > admin-public.pem
+      echo MIIBjTCCATOgAwIBAgIUIkltg0/UgO0K9MVMEPwouxaSQoowCgYIKoZIzj0EAwIw >> admin-public.pem
+      echo GzEZMBcGA1UEAxMQYWRtaW5QZWVyT3JnMkNBMTAeFw0xODAxMjUxMTE0MDBaFw0x >> admin-public.pem
+      echo OTAxMjUxMTE0MDBaMBAxDjAMBgNVBAMTBWFkbWluMFkwEwYHKoZIzj0CAQYIKoZI >> admin-public.pem
+      echo zj0DAQcDQgAEePxHXOF7KKpSwzE168MR5lMeglCGPECBq5KjcXM9tUGWdbGKv2Hb >> admin-public.pem
+      echo Y52HAaqO4L9WNrotZHbB6+CGtum03+gO5aNgMF4wDgYDVR0PAQH/BAQDAgeAMAwG >> admin-public.pem
+      echo A1UdEwEB/wQCMAAwHQYDVR0OBBYEFItz9w2Ssmo8blfHOjgsZJV5AzVEMB8GA1Ud >> admin-public.pem
+      echo IwQYMBaAFELuOBpdQ+BTMwWRZdwJrZD0rQHyMAoGCCqGSM49BAMCA0gAMEUCIQDq >> admin-public.pem
+      echo h/dWzJkA4vPEaEGpE4iG1V6XAvIbx31H3wSHC2QsGwIgLRyk3m23OPCE0uAV2ULO >> admin-public.pem
+      echo QCvS6JZtxj4eGMBZ/ioQxmg= >> admin-public.pem
+      echo -----END CERTIFICATE----- >> admin-public.pem
+       cat admin-public.pem
 
-      # Create a service, this is okay to run if the service already exists as long as its the same typeof service
-      printf "\n --- Creating an instance of the IBM Blockchain Platform service ---\n"
-      #cf create-service ${IBP_NAME} ${IBP_PLAN} ${SERVICE_INSTANCE_NAME}
+            # Test Code
+            printf "\n --- Listing services for testing ---\n"
+            cf services
+            #cf services | sed -n 's/.*\(ibm-blockchain-plan-v1-prod\).*/\1/p'
+            #cf services | sed -n 's/.*\(${SERVICE_INSTANCE_NAME}\).*/\1/p'
 
-      # Push app (don't start yet, wait for binding)
-      printf "\n --- Creating the Marbles application ---\n"
-      cf push $CF_APP --no-start
+           printf "\n ---- Install node and nvm ----- \n"
+          npm config delete prefix
+           curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.8/install.sh | bash
+           export NVM_DIR="$HOME/.nvm"
+      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          nvm install --lts
+      nvm use node
 
-      # Bind app to the blockchain service
-      printf "\n --- Binding the IBM Blockchain Platform service to Marbles ---\n"
-      cf bind-service $CF_APP ${SERVICE_INSTANCE_NAME} -c "{\"permissions\":\"read-only\"}"
+          node -v
 
-      # Start her up
-      printf "\n --- Starting Marbles ---\n"
-      cf start $CF_APP
-      #cf restage $CF_APP - this is not needed if we bind before starting
+      printf "\n --- Getting service credentials '${SERVICE_INSTANCE_NAME}' **** '${VCAP_KEY_NAME}' ---\n"
+      cf service-key ${SERVICE_INSTANCE_NAME} ${VCAP_KEY_NAME} > ./config/temp.txt
+      tail -n +2 ./config/temp.txt > ./config/vehicle_tc.json
 
-      # Install and instantiate the chaincode
-      printf "\n --- Setting up for deployment ---\n"
-      npm install
-      printf "\n --- Deploying Chaincode ---\n"
-      node ./scripts/deploy_chaincode.js || true
+      curl -o jq -L https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64
+      chmod +x jq
+      export PATH=$PATH:$PWD
 
-      printf "\n\n --- We are done here. ---\n\n"
+      npm install -g connection-profile-converter
+      connection-profile-converter --input ./config/vehicle_tc.json --output ./config/connection-profile.json --cf-service-key --name hlfv1
+
+      export SECRET=$(jq --raw-output 'limit(1;.credentials.certificateAuthorities[].registrar[0].enrollSecret)' ./config/vehicle_tc.json)
+
+           printf "\n ---- Install composer-cli ----- \n "
+
+           npm install -g composer-cli
+
+           composer -v
+
+          # printf "\n ----- create ca card ----- \n"
+          # composer card create -f ca.card -p ./config/connection-profile.json -u admin -s ${SECRET}
+          # composer card import -f ca.card -n ca
+          # composer identity request --card ca --path ./credentials
+          # ls -la ./credentials
+
+
+
+            printf "\n --- create admin card ----\n"
+           composer card create -f adminCard.card -p ./config/connection-profile.json -u admin -c admin-public.pem -k admin-priv.pem --role PeerAdmin --role ChannelAdmin
+
+           composer card import -f adminCard.card -n adminCard
+
+           printf "\n --- get network --- \n"
+           npm install vehicle-lifecycle-network
+
+           ls -la
+
+        printf "\n --- create archive --- \n"
+
+           composer archive create -a ./vehicle-lifecycle-network.bna -t dir -n node_modules/vehicle-lifecycle-network
+
+           ls -la
+           pwd
+
+          printf "\n --- install network --- \n"
+
+          # TODO put this back in later
+          # composer runtime install -c adminCard -n vehicle-lifecycle-network
+
+      printf "\n --- start network --- \n"
+
+           #composer network start -c adminCard -a vehicle-lifecycle-network.bna -A admin -C admin-public.pem -f delete_me.card
+
+           composer card delete -n admin@vehicle-lifecycle-network
+
+           composer card create -n vehicle-lifecycle-network -p ./config/connection-profile.json -u admin -c admin-public.pem -k admin-priv.pem
+
+           composer card import -f ./admin@vehicle-lifecycle-network.card
+
+      printf "\n ---- Install composer-playground ----- \n"
+          npm install composer-playground
+
+          cd node_modules/composer-playground
+
+          cf push composer-playground-${CF_APP} -c "node cli.js" -i 2 -m 128M --no-start
+          cf set-env composer-playground-${CF_APP} COMPOSER_CONFIG '{"webonly":true}'
+          cf start composer-playground-${CF_APP}
+
+         printf "\n----- Install REST server ----- \n"
+          cd ../..
+          npm install composer-rest-server
+          cd node_modules/composer-rest-server
+          cf push composer-rest-server-${CF_APP} -c "node cli.js -c admin@vehicle-lifecycle-network -n always -w true" -i 2 -m 512M --no-start
+          cf start composer-rest-server-${CF_APP}
+
+
+            # Detect if there is already a service we should use
+         #   printf "\n --- Detecting service option---\n"
+         #   if [ "$SERVICE_INSTANCE_NAME" != "" ]; then
+         #     echo "A service instance name was provided, lets use that"
+         #   else
+         #     echo "A service instance name was NOT provided, lets use the default one"
+         #     export SERVICE_INSTANCE_NAME="davids-d2b-created"
+         #   fi
+         #   printf "Using service instance name '${SERVICE_INSTANCE_NAME}'\n"
+
+            # Create a service, this is okay to run if the service already exists as long as its the same typeof service
+         #   printf "\n --- Creating an instance of the IBM Blockchain Platform service ---\n"
+            #cf create-service ${IBP_NAME} ${IBP_PLAN} ${SERVICE_INSTANCE_NAME}
+
+            # Push app (don't start yet, wait for binding)
+        #    printf "\n --- Creating the Marbles application bob '${CF_APP}' ---\n"
+        #    cf push ${CF_APP} --no-start
+
+            # Bind app to the blockchain service
+         #   printf "\n --- Binding the IBM Blockchain Platform service to Marbles ---\n"
+            #cf bind-service ${CF_APP} ${SERVICE_INSTANCE_NAME} -c "{\"permissions\":\"read-only\"}"
+
+            # Start her up
+          #  printf "\n --- Starting Marbles '${CF_APP}' ---\n"
+          #  cf start ${CF_APP}
+            #cf restage ${CF_APP} - this is not needed if we bind before starting
+
+            # Install and instantiate the chaincode
+         #   printf "\n --- Setting up for deployment ---\n"
+         #   npm install
+         #   printf "\n --- Deploying Chaincode ---\n"
+         #   node ./scripts/deploy_chaincode.js || true
+
+          #  printf "\n\n --- We are done here. ---\n\n"
+
