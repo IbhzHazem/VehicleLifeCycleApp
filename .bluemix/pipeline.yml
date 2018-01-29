@@ -15,7 +15,7 @@ stages:
     value: '{{SAMPLE_REPO}}'
     type: text
   jobs:
-  - name: deploy-vehicle-app
+  - name: deploy-marbles-app
     type: deployer
     target:
       region_id: ${PROD_REGION_ID}
@@ -25,7 +25,7 @@ stages:
     script: |
       #!/bin/bash
             export IBP_NAME="Blockchain"
-            export IBP_PLAN="ibm-blockchain-plan-v1-ga1-dev"
+      export IBP_PLAN="ibm-blockchain-plan-v1-ga1-dev"
            export SERVICE_INSTANCE_NAME="Blockchain-i9"
       export VCAP_KEY_NAME="Credentials-1"
 
@@ -51,11 +51,11 @@ stages:
       echo -----END CERTIFICATE----- >> admin-public.pem
        cat admin-public.pem
 
-            # Test Code
-            printf "\n --- Listing services for testing ---\n"
-            cf services
-            #cf services | sed -n 's/.*\(ibm-blockchain-plan-v1-prod\).*/\1/p'
-            #cf services | sed -n 's/.*\(${SERVICE_INSTANCE_NAME}\).*/\1/p'
+      # Test Code
+      printf "\n --- Listing services for testing ---\n"
+      cf services
+      #cf services | sed -n 's/.*\(ibm-blockchain-plan-v1-prod\).*/\1/p'
+      #cf services | sed -n 's/.*\(${SERVICE_INSTANCE_NAME}\).*/\1/p'
 
            printf "\n ---- Install node and nvm ----- \n"
           npm config delete prefix
@@ -143,7 +143,7 @@ stages:
           cf start composer-rest-server-${CF_APP}
 
 
-            # Detect if there is already a service we should use
+      # Detect if there is already a service we should use
          #   printf "\n --- Detecting service option---\n"
          #   if [ "$SERVICE_INSTANCE_NAME" != "" ]; then
          #     echo "A service instance name was provided, lets use that"
@@ -153,24 +153,24 @@ stages:
          #   fi
          #   printf "Using service instance name '${SERVICE_INSTANCE_NAME}'\n"
 
-            # Create a service, this is okay to run if the service already exists as long as its the same typeof service
+      # Create a service, this is okay to run if the service already exists as long as its the same typeof service
          #   printf "\n --- Creating an instance of the IBM Blockchain Platform service ---\n"
             #cf create-service ${IBP_NAME} ${IBP_PLAN} ${SERVICE_INSTANCE_NAME}
 
-            # Push app (don't start yet, wait for binding)
+      # Push app (don't start yet, wait for binding)
         #    printf "\n --- Creating the Marbles application bob '${CF_APP}' ---\n"
         #    cf push ${CF_APP} --no-start
 
-            # Bind app to the blockchain service
+      # Bind app to the blockchain service
          #   printf "\n --- Binding the IBM Blockchain Platform service to Marbles ---\n"
             #cf bind-service ${CF_APP} ${SERVICE_INSTANCE_NAME} -c "{\"permissions\":\"read-only\"}"
 
-            # Start her up
+      # Start her up
           #  printf "\n --- Starting Marbles '${CF_APP}' ---\n"
           #  cf start ${CF_APP}
             #cf restage ${CF_APP} - this is not needed if we bind before starting
 
-            # Install and instantiate the chaincode
+      # Install and instantiate the chaincode
          #   printf "\n --- Setting up for deployment ---\n"
          #   npm install
          #   printf "\n --- Deploying Chaincode ---\n"
