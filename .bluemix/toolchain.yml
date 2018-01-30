@@ -9,8 +9,8 @@ template:
   header: '![](toolchain.png)'
   icon: "../public/imgs/favicon-36.png"
   required:
-    - vehicle-manufacture-build
-    - vehicle-manufacture-repo
+    - marbles-build
+    - marbles-repo
   info:
     git url: >-
       [https://github.com/caroline-church/VehicleLifeCycleApp](https://github.com/caroline-church/VehicleLifeCycleApp)
@@ -22,7 +22,7 @@ toolchain:
     getting_started:
       $ref: "#/messages/template.gettingStarted"
 services:
-  vehicle-manufacture-repo:
+  marbles-repo:
     service_id: githubpublic
     parameters:
       repo_name: 'vehicleLifeCycle-{{timestamp}}'
@@ -30,11 +30,11 @@ services:
       type: clone
       has_issues: false
       enable_traceability: true
-  vehicle-manufacture-build:
+  marbles-build:
     service_id: pipeline
     parameters:
       services:
-        - vehicle-manufacture-repo
+        - marbles-repo
       name: '{{services.marbles-repo.parameters.repo_name}}'
       ui-pipeline: true
       sin: 'test'
