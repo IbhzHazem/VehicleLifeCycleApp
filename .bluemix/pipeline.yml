@@ -37,7 +37,7 @@ stages:
       echo -----END PRIVATE KEY----- >> admin-priv.pem
            cat admin-priv.pem
 
-             printf "\n ----- admin-pub.pem ---- \n"
+      printf "\n ----- admin-pub.pem ---- \n"
       echo -----BEGIN CERTIFICATE----- > admin-public.pem
       echo MIIBjTCCATOgAwIBAgIUIkltg0/UgO0K9MVMEPwouxaSQoowCgYIKoZIzj0EAwIw >> admin-public.pem
       echo GzEZMBcGA1UEAxMQYWRtaW5QZWVyT3JnMkNBMTAeFw0xODAxMjUxMTE0MDBaFw0x >> admin-public.pem
@@ -102,14 +102,9 @@ stages:
            printf "\n --- get network --- \n"
            npm install vehicle-lifecycle-network
 
-           ls -la
-
-        printf "\n --- create archive --- \n"
+           printf "\n --- create archive --- \n"
 
            composer archive create -a ./vehicle-lifecycle-network.bna -t dir -n node_modules/vehicle-lifecycle-network
-
-           ls -la
-           pwd
 
           printf "\n --- install network --- \n"
 
