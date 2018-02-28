@@ -13,7 +13,7 @@ stages:
     type: text
   - name: ALIVE_SIGNAL
     value: '{{alive_signal}}'
-  type: text
+    type: text
   - name: SAMPLE_REPO
     value: '{{SAMPLE_REPO}}'
     type: text
