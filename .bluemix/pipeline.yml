@@ -147,9 +147,10 @@ stages:
         chmod +x jq
         export PATH=$PATH:$PWD
 
-        npm install -g connection-profile-converter
-        connection-profile-converter --input ./config/vehicle_tc.json --output ./config/connection-profile.json --cf-service-key --name hlfv1
+       # npm install -g connection-profile-converter
+       # connection-profile-converter --input ./config/vehicle_tc.json --output ./config/connection-profile.json --cf-service-key --name hlfv1
 
+        cp ./config/vehicle_tc.json ./config/connection-profile.json
         export SECRET=$(jq --raw-output 'limit(1;.credentials[0].certificateAuthorities[].registrar[0].enrollSecret)' ./config/vehicle_tc.json)
 
         export NETWORKID=$(jq --raw-output '."credentials[0]"."x-networkId"' ./config/vehicle_tc.json)
