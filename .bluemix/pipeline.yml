@@ -147,9 +147,10 @@ stages:
         chmod +x jq
         export PATH=$PATH:$PWD
 
-        npm install -g connection-profile-converter
-        connection-profile-converter --input ./config/vehicle_tc.json --output ./config/connection-profile.json --cf-service-key --name hlfv1
+       # npm install -g connection-profile-converter
+       # connection-profile-converter --input ./config/vehicle_tc.json --output ./config/connection-profile.json --cf-service-key --name hlfv1
 
+        cp ./config/vehicle_tc.json ./config/connection-profile.json
         export SECRET=$(jq --raw-output 'limit(1;.credentials[0].certificateAuthorities[].registrar[0].enrollSecret)' ./config/vehicle_tc.json)
 
         export NETWORKID=$(jq --raw-output '."credentials[0]"."x-networkId"' ./config/vehicle_tc.json)
@@ -165,7 +166,7 @@ stages:
       # -----------------------------------------------------------
         printf "\n ---- Install composer-cli ----- \n "
 
-        npm install -g composer-cli
+        npm install -g composer-cli@next
 
         composer -v
 
@@ -187,8 +188,8 @@ stages:
         # stop peer
         curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '"{\n\t\n}"' $(API_URL)/api/v1/networks/$(NETWORKID)/nodes/$(USERID)/stop
 
-          # start peer
-          curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '"{\n\t\n}"' $(API_URL)/api/v1/networks/$(NETWORKID/nodes/$(USERID)/start
+        # start peer
+        curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '"{\n\t\n}"' $(API_URL)/api/v1/networks/$(NETWORKID/nodes/$(USERID)/start
 
       # -----------------------------------------------------------
       # 6. Create new card
@@ -223,7 +224,7 @@ stages:
       # 8. Install Composer Playground
       # -----------------------------------------------------------
         printf "\n ---- Install composer-playground ----- \n"
-        npm install composer-playground
+        npm install composer-playground@next
 
         cd node_modules/composer-playground
 
@@ -236,7 +237,7 @@ stages:
       # -----------------------------------------------------------
         printf "\n----- Install REST server ----- \n"
         cd ../..
-        npm install composer-rest-server
+        npm install composer-rest-server@next
         cd node_modules/composer-rest-server
         cf push composer-rest-server-${CF_APP} -c "node cli.js -c admin@vehicle-manufacture-network -n always -w true" -i 2 -m 512M --no-start
         cf start composer-rest-server-${CF_APP}
