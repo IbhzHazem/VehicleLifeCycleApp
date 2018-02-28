@@ -11,9 +11,6 @@ stages:
   - name: SERVICE_INSTANCE_NAME
     value: '{{sin}}'
     type: text
-  - name: ALIVE_SIGNAL
-    value: '{{alive_signal}}'
-    type: text
   - name: SAMPLE_REPO
     value: '{{SAMPLE_REPO}}'
     type: text
@@ -29,6 +26,7 @@ stages:
       #!/bin/bash
       export IBP_NAME="ibm-blockchain-5-dev"
       export IBP_PLAN="ibm-blockchain-plan-v1-starter-dev"
+      export VCAP_KEY_NAME="Credentials-1"
 
       #      export IBP_NAME="Blockchain"
       #export IBP_PLAN="ibm-blockchain-plan-v1-ga1-dev"
