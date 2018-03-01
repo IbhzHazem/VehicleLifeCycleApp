@@ -11,6 +11,9 @@ stages:
   - name: SERVICE_INSTANCE_NAME
     value: '{{sin}}'
     type: text
+  - name: ALIVE_SIGNAL
+    value: '{{alive_signal}}'
+    type: text
   - name: SAMPLE_REPO
     value: '{{SAMPLE_REPO}}'
     type: text
@@ -79,7 +82,7 @@ stages:
           echo "A service instance name was provided, lets use that"
         else
           echo "A service instance name was NOT provided, lets use the default one"
-          export SERVICE_INSTANCE_NAME="Blockchain-${CF_APP_NAME}"
+          export SERVICE_INSTANCE_NAME="Blockchain-${CF_APP}"
         fi
           printf "Using service instance name '${SERVICE_INSTANCE_NAME}'\n"
 
@@ -140,23 +143,23 @@ stages:
       # -----------------------------------------------------------
         printf "\n --- Getting service credentials ---\n"
         cf service-key ${SERVICE_INSTANCE_NAME} ${VCAP_KEY_NAME} > ./config/temp.txt
-            tail -n +2 ./config/temp.txt > ./config/vehicle_tc.json
-            printf "\n --- testing temp.txt --- \n"
-            cat ./config/temp.txt -b
+        tail -n +2 ./config/temp.txt > ./config/vehicle_tc.json
+        printf "\n --- testing temp.txt --- \n"
+        cat ./config/temp.txt -b
 
-            curl -o jq -L https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64
+        curl -o jq -L https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64
         chmod +x jq
         export PATH=$PATH:$PWD
 
-            jq --raw-output '.credentials[0]' ./config/vehicle_tc.json > ./config/connection-profile.json
+        jq --raw-output '.credentials[0]' ./config/vehicle_tc.json > ./config/connection-profile.json
 
-            printf "\n --- testing vehicle_tc.json --- \n"
-            cat ./config/connection-profile.json
+        printf "\n --- testing vehicle_tc.json --- \n"
+        cat ./config/connection-profile.json
 
-       # npm install -g connection-profile-converter
-       # connection-profile-converter --input ./config/vehicle_tc.json --output ./config/connection-profile.json --cf-service-key --name hlfv1
+        # npm install -g connection-profile-converter
+        # connection-profile-converter --input ./config/vehicle_tc.json --output ./config/connection-profile.json --cf-service-key --name hlfv1
 
-       # cp ./config/vehicle_tc.json ./config/connection-profile.json
+        # cp ./config/vehicle_tc.json ./config/connection-profile.json
         export SECRET=$(jq --raw-output 'limit(1;.certificateAuthorities[].registrar[0].enrollSecret)' ./config/connection-profile.json)
 
         export NETWORKID=$(jq --raw-output '."x-networkId"' ./config/connection-profile.json)
@@ -248,27 +251,30 @@ stages:
         cf push composer-rest-server-${CF_APP} -c "node cli.js -c admin@vehicle-manufacture-network -n always -w true" -i 2 -m 512M --no-start
         cf start composer-rest-server-${CF_APP}
 
+      # -----------------------------------------------------------
+      # 10. Start the app
+      # -----------------------------------------------------------
 
+        # Push app (don't start yet, wait for binding)
+        printf "\n --- Creating the Vehicle manufacture application '${CF_APP}' ---\n"
+        cf push ${CF_APP} --no-start
+        cf set-env ${CF_APP} REST_SERVER_CONFIG '{"webSocketURL": "ws://composer-rest-server-${CF_APP}", "httpURL": "composer-rest-server-${CF_APP}/api"}'
 
+        # Bind app to the blockchain service
+        printf "\n --- Binding the IBM Blockchain Platform service to Vehicle manufacture app ---\n"
+        cf bind-service ${CF_APP} ${SERVICE_INSTANCE_NAME} -c "{\"permissions\":\"read-only\"}"
 
-      # Push app (don't start yet, wait for binding)
-        #    printf "\n --- Creating the Marbles application bob '${CF_APP}' ---\n"
-        #    cf push ${CF_APP} --no-start
+        # Start her up
+        printf "\n --- Starting vehicle manufacture app '${CF_APP}' ---\n"
+        cf start ${CF_APP}
 
-      # Bind app to the blockchain service
-         #   printf "\n --- Binding the IBM Blockchain Platform service to Marbles ---\n"
-            #cf bind-service ${CF_APP} ${SERVICE_INSTANCE_NAME} -c "{\"permissions\":\"read-only\"}"
+      # -----------------------------------------------------------
+      # 11. Ping IBP that the application is alive  - [ Optional ]
+      # -----------------------------------------------------------
+        if [ "$ALIVE_SIGNAL" != "" ]; then
+          printf "\n --- Sending signal that the demo is alive ---\n"
+          curl -s --head $ALIVE_SIGNAL | head -n 1 | grep "HTTP/1.[01] [23].."
+        fi
 
-      # Start her up
-          #  printf "\n --- Starting Marbles '${CF_APP}' ---\n"
-          #  cf start ${CF_APP}
-            #cf restage ${CF_APP} - this is not needed if we bind before starting
-
-      # Install and instantiate the chaincode
-         #   printf "\n --- Setting up for deployment ---\n"
-         #   npm install
-         #   printf "\n --- Deploying Chaincode ---\n"
-         #   node ./scripts/deploy_chaincode.js || true
-
-          #  printf "\n\n --- We are done here. ---\n\n"
+        printf "\n\n --- We are done here. ---\n\n"
 
