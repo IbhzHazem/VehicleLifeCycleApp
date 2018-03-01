@@ -140,26 +140,32 @@ stages:
       # -----------------------------------------------------------
         printf "\n --- Getting service credentials ---\n"
         cf service-key ${SERVICE_INSTANCE_NAME} ${VCAP_KEY_NAME} > ./config/temp.txt
-        cf service-key ${SERVICE_INSTANCE_NAME} ${VCAP_KEY_NAME} > ./config/temp.txt
-        tail -n +2 ./config/temp.txt > ./config/vehicle_tc.json
+            tail -n +2 ./config/temp.txt > ./config/vehicle_tc.json
+            printf "\n --- testing temp.txt --- \n"
+            cat ./config/temp.txt -b
 
-        curl -o jq -L https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64
+            curl -o jq -L https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64
         chmod +x jq
         export PATH=$PATH:$PWD
+
+            jq --raw-output '.credentials[0]' ./config/vehicle_tc.json > ./config/connection-profile.json
+
+            printf "\n --- testing vehicle_tc.json --- \n"
+            cat ./config/connection-profile.json
 
        # npm install -g connection-profile-converter
        # connection-profile-converter --input ./config/vehicle_tc.json --output ./config/connection-profile.json --cf-service-key --name hlfv1
 
-        cp ./config/vehicle_tc.json ./config/connection-profile.json
-        export SECRET=$(jq --raw-output 'limit(1;.credentials[0].certificateAuthorities[].registrar[0].enrollSecret)' ./config/vehicle_tc.json)
+       # cp ./config/vehicle_tc.json ./config/connection-profile.json
+        export SECRET=$(jq --raw-output 'limit(1;.certificateAuthorities[].registrar[0].enrollSecret)' ./config/connection-profile.json)
 
-        export NETWORKID=$(jq --raw-output '."credentials[0]"."x-networkId"' ./config/vehicle_tc.json)
+        export NETWORKID=$(jq --raw-output '."x-networkId"' ./config/connection-profile.json)
 
-        export USERID=$(jq --raw-output 'limit(1;.credentials[0].organizations[]).peers[0]')
+        export USERID=$(jq --raw-output 'limit(1;.organizations[].peers[0])' ./config/connection-profile.json)
 
-        export PASSWORD=$(jq --raw-output '.credentials[0]."x-api".secret')
+        export PASSWORD=$(jq --raw-output '."x-api".secret' ./config/connection-profile.json)
 
-        export API_URL=$(jq --raw-output '.credentials[0]."x-api".url')
+        export API_URL=$(jq --raw-output '.credentials[0]."x-api".url' ./config/connection-profile.json)
 
       # -----------------------------------------------------------
       # 4. Install composer-cli
@@ -188,8 +194,8 @@ stages:
         # stop peer
         curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '"{\n\t\n}"' $(API_URL)/api/v1/networks/$(NETWORKID)/nodes/$(USERID)/stop
 
-        # start peer
-        curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '"{\n\t\n}"' $(API_URL)/api/v1/networks/$(NETWORKID/nodes/$(USERID)/start
+          # start peer
+          curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '"{\n\t\n}"' $(API_URL)/api/v1/networks/$(NETWORKID/nodes/$(USERID)/start
 
       # -----------------------------------------------------------
       # 6. Create new card
