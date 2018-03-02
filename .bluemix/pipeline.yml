@@ -175,7 +175,7 @@ stages:
       # -----------------------------------------------------------
         printf "\n ---- Install composer-cli ----- \n "
 
-        npm install -g composer-cli@next
+        npm install -g composer-cli@next-unstable
 
         composer -v
 
@@ -233,7 +233,7 @@ stages:
       # 8. Install Composer Playground
       # -----------------------------------------------------------
         printf "\n ---- Install composer-playground ----- \n"
-        npm install composer-playground@next
+        npm install composer-playground@next-unstable
 
         cd node_modules/composer-playground
 
@@ -246,7 +246,7 @@ stages:
       # -----------------------------------------------------------
         printf "\n----- Install REST server ----- \n"
         cd ../..
-        npm install composer-rest-server@next
+        npm install composer-rest-server@next-unstable
         cd node_modules/composer-rest-server
         cf push composer-rest-server-${CF_APP} -c "node cli.js -c admin@vehicle-manufacture-network -n always -w true" -i 2 -m 512M --no-start
         cf start composer-rest-server-${CF_APP}
