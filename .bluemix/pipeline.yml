@@ -161,16 +161,29 @@ stages:
 
         # cp ./config/vehicle_tc.json ./config/connection-profile.json
         export SECRET=$(jq --raw-output 'limit(1;.certificateAuthorities[].registrar[0].enrollSecret)' ./config/connection-profile.json)
+        printf "\n secret ${SECRET} \n"
 
         export NETWORKID=$(jq --raw-output '."x-networkId"' ./config/connection-profile.json)
+        printf "\n networkid ${NETWORKID} \n"
 
-        export USERID=$(jq --raw-output 'limit(1;.organizations[].peers[0])' ./config/connection-profile.json)
+        export USERID=$(jq --raw-output '."x-api".key' ./config/connection-profile.json)
+        printf "\n userid ${USERID} \n"
 
         export PASSWORD=$(jq --raw-output '."x-api".secret' ./config/connection-profile.json)
+        printf "\n password ${PASSWORD} \n"
 
         export API_URL=$(jq --raw-output '."x-api".url' ./config/connection-profile.json)
+        printf "\n apiurl ${API_URL} \n"
 
-        export MSPID= $(jq --raw-output 'limit(1;.organizations[].mspid' ./config/connection-profile.json)
+        export MSPID=$(jq --raw-output 'limit(1; .organizations[].mspid)' ./config/connection-profile.json)
+        printf "\n mspid ${MSPID} \n"
+
+        export PEER=$(jq --raw-output 'limit(1; .organizations[].peers[0])' ./config/connection-profile.json)
+        printf "\n peer ${PEER} \n"
+
+        export CHANNEL="defaultchannel"
+
+
 
       # -----------------------------------------------------------
       # 4. Install composer-cli
@@ -187,34 +200,48 @@ stages:
         composer identity request --card ca --path ./credentials
         ls -la ./credentials
 
-        export PUBLIC-CERT = $(cat admin-pub.pem)
+        export PUBLIC_CERT=$(cat ./credentials/admin-pub.pem)
+
+        printf "\n public cert ${PUBLIC_CERT} \n"
 
       # -----------------------------------------------------------
       # 5. Add and sync admin cert
       # -----------------------------------------------------------
         # add admin cert
         printf "\n ----- add certificate ----- \n"
-        printf "\n curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '"{\n\t\t\"msp_id\": \"$(MSPID)\",\n\t\t\"peers\": [\"$(USERID)\"],\n\t\t\"adminCertName\": \"my cert\",\n\t\t\"adminCertificate\": \"$(PUBLIC-CERT)"\n}" $(API_URL)/api/v1/networks/$(NETWORKID)/certificates \n"
-        curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '"{\n\t\t\"msp_id\": \"$(MSPID)\",\n\t\t\"peers\": [\"$(USERID)\"],\n\t\t\"adminCertName\": \"my cert\",\n\t\t\"adminCertificate\": \"$(PUBLIC-CERT)"\n}" $(API_URL)/api/v1/networks/$(NETWORKID)/certificates"
+        cat << EOF > request.json
+{
+  "msp_id": "${MSPID}",
+  "peers": ["${PEER}"],
+  "adminCertName": "my cert",
+  "adminCertificate": "${PUBLIC_CERT}"
+}
+EOF
+
+        cat request.json
+        echo curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} --data-raw @request.json ${API_URL}/api/v1/networks/${NETWORKID}/certificates
+             curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} --data-raw @request.json ${API_URL}/api/v1/networks/${NETWORKID}/certificates
 
         # sync certificates
         printf "\n ----- sync certificate ----- \n"
-        printf "\n curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '"{\n\t\n}"' $(API_URL)/api/v1/networks/$(NETWORKID)/channels/first/sync \n"
-        curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '"{\n\t\n}"' $(API_URL)/api/v1/networks/$(NETWORKID)/channels/first/sync
+        echo curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '{}' ${API_URL}/api/v1/networks/${NETWORKID}/channels/$(CHANNEL}/sync
+             curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '{}' ${API_URL}/api/v1/networks/${NETWORKID}/channels/${CHANNEL}/sync
 
         # stop peer
         printf "\n ----- stop peer ----- \n"
-        curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '"{\n\t\n}"' $(API_URL)/api/v1/networks/$(NETWORKID)/nodes/$(USERID)/stop
+        echo curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '{}' ${API_URL}/api/v1/networks/${NETWORKID}/nodes/${PEER}/stop
+             curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '{}' ${API_URL}/api/v1/networks/${NETWORKID}/nodes/${PEER}/stop
 
         # start peer
         printf "\n ----- start peer ----- \n"
-        curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '"{\n\t\n}"' $(API_URL)/api/v1/networks/$(NETWORKID/nodes/$(USERID)/start
+        echo curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '{}' ${API_URL}/api/v1/networks/${NETWORKID}/nodes/${PEER}/start
+             curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '{}' ${API_URL}/api/v1/networks/${NETWORKID}/nodes/${PEER}/start
 
       # -----------------------------------------------------------
       # 6. Create new card
       # -----------------------------------------------------------
         printf "\n ---- Create admin card ----- \n "
-        composer card create -f adminCard.card -p ./config/connection-profile.json -u admin -c admin-public.pem -k admin-priv.pem --role PeerAdmin --role ChannelAdmin
+        composer card create -f adminCard.card -p ./config/connection-profile.json -u admin -c ./credentials/admin-pub.pem -k ./credentials/admin-priv.pem --role PeerAdmin --role ChannelAdmin
 
         composer card import -f adminCard.card -n adminCard
 
