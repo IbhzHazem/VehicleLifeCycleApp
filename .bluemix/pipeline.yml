@@ -151,7 +151,7 @@ stages:
         chmod +x jq
         export PATH=$PATH:$PWD
 
-        jq --raw-output '.credentials[0]' ./config/vehicle_tc.json > ./config/connection-profile.json
+        jq --raw-output '.credentials[0].channels.defaultchannel.chaincodes = [] | .credentials[0]' ./config/vehicle_tc.json > ./config/connection-profile.json
 
         printf "\n --- testing vehicle_tc.json --- \n"
         cat ./config/connection-profile.json
