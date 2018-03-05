@@ -168,7 +168,9 @@ stages:
 
         export PASSWORD=$(jq --raw-output '."x-api".secret' ./config/connection-profile.json)
 
-        export API_URL=$(jq --raw-output '.credentials[0]."x-api".url' ./config/connection-profile.json)
+        export API_URL=$(jq --raw-output '."x-api".url' ./config/connection-profile.json)
+
+        export MSPID= $(jq --raw-output 'limit(1;.organizations[].mspid' ./config/connection-profile.json)
 
       # -----------------------------------------------------------
       # 4. Install composer-cli
@@ -185,15 +187,19 @@ stages:
         composer identity request --card ca --path ./credentials
         ls -la ./credentials
 
+        export PUBLIC-CERT = $(cat admin-pub.pem)
+
       # -----------------------------------------------------------
       # 5. Add and sync admin cert
       # -----------------------------------------------------------
         # add admin cert
         printf "\n ----- add certificate ----- \n"
-        curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '"{\n\t\t\"msp_id\": \"PeerOrg1\",\n\t\t\"peers\": [\"fabric-peer-org1-27724c\"],\n\t\t\"adminCertName\": \"nickname for cert\",\n\t\t\"adminCertificate\": \"-----BEGIN CERTIFICATE-----\\nMIIBkzCCATqgAwIBAgIUFmnBVNasfojugEPhVWMngCWRJVQwCgYIKoZIzj0EAwIw\\nGzEZMBcGA1UEAxMQYWRtaW5QZWVyT3JnMUNBMTAeFw0xODAxMDUxMjI3MDBaFw0x\\nOTAxMDUxMjI3MDBaMBcxFTATBgNVBAMTDGFkbWlubWFuYWdlcjBZMBMGByqGSM49\\nAgEGCCqGSM49AwEHA0IABNH5/2+e44jS+xQC8fhbkPoSLZyXvDMkXMFL+Rmts7Sc\\nus3QvRbKr03QvZ1sArF/VDLgVhDEAX2dAwHwb6mllWGjYDBeMA4GA1UdDwEB/wQE\\nAwIHgDAMBgNVHRMBAf8EAjAAMB0GA1UdDgQWBBTXp9zx/i7/nYgzlXeyHqCd4yzp\\nwTAfBgNVHSMEGDAWgBTkN7VfkQUCy+Z8z86nNJyo1MMdjTAKBggqhkjOPQQDAgNH\\nADBEAiBPoeBT759KomNFcEICdpaL3bC+M8BmiXKanSTknWGkRgIgCPhmjONrpvrU\\nYLxYKX+koFaCdLQjd6IZQWgJclWZ4bc=\\n-----END CERTIFICATE-----\\n\"\n}" $(API_URL)/api/v1/networks/$(NETWORKID)/certificates"
+        printf "\n curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '"{\n\t\t\"msp_id\": \"$(MSPID)\",\n\t\t\"peers\": [\"$(USERID)\"],\n\t\t\"adminCertName\": \"my cert\",\n\t\t\"adminCertificate\": \"$(PUBLIC-CERT)"\n}" $(API_URL)/api/v1/networks/$(NETWORKID)/certificates \n"
+        curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '"{\n\t\t\"msp_id\": \"$(MSPID)\",\n\t\t\"peers\": [\"$(USERID)\"],\n\t\t\"adminCertName\": \"my cert\",\n\t\t\"adminCertificate\": \"$(PUBLIC-CERT)"\n}" $(API_URL)/api/v1/networks/$(NETWORKID)/certificates"
 
         # sync certificates
         printf "\n ----- sync certificate ----- \n"
+        printf "\n curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '"{\n\t\n}"' $(API_URL)/api/v1/networks/$(NETWORKID)/channels/first/sync \n"
         curl -X POST --header 'Content-Type: application/json --header 'Accept: application/json' --basic --user ${USERID}:${PASSWORD} -d '"{\n\t\n}"' $(API_URL)/api/v1/networks/$(NETWORKID)/channels/first/sync
 
         # stop peer
